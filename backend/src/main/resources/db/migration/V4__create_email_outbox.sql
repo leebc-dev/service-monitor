@@ -1,0 +1,20 @@
+CREATE TABLE email_outbox (
+    delivery_id CHAR(36) NOT NULL PRIMARY KEY,
+    alert_id CHAR(36) NULL,
+    sender VARCHAR(254) NOT NULL,
+    recipient VARCHAR(254) NOT NULL,
+    subject VARCHAR(300) NOT NULL,
+    body TEXT NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    attempt_count INT NOT NULL DEFAULT 0,
+    next_attempt_at DATETIME(6) NOT NULL,
+    lock_token CHAR(36) NULL,
+    locked_until DATETIME(6) NULL,
+    last_error_code VARCHAR(48) NULL,
+    sent_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    UNIQUE KEY uk_email_alert (alert_id),
+    INDEX idx_email_due (status, next_attempt_at),
+    INDEX idx_email_lease (status, locked_until),
+    CONSTRAINT fk_email_alert FOREIGN KEY (alert_id) REFERENCES alert_notification (alert_id) ON DELETE CASCADE
+);

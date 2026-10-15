@@ -1,0 +1,109 @@
+server:
+  address: 127.0.0.1
+  port: ${BACKEND_PORT:18180}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  application:
+    name: service-monitor-api
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:23306}/${MYSQL_DATABASE:service_monitor}?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&characterEncoding=UTF-8
+    username: ${MYSQL_USER:monitor}
+    password: ${MYSQL_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 3000
+      validation-timeout: 1500
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:26379}
+      connect-timeout: 2s
+      timeout: 2s
+      repositories:
+        enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:${KAFKA_PORT:29092}}
+    admin:
+      fail-fast: true
+      operation-timeout: 10s
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.block.ms: 500
+        request.timeout.ms: 2000
+        delivery.timeout.ms: 3000
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 100
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-components: always
+      show-details: never
+      group:
+        infrastructure:
+          include: db,redis,kafka
+
+monitor:
+  email:
+    enabled: ${MONITOR_EMAIL_ENABLED:false}
+    from: ${MONITOR_EMAIL_FROM:}
+    to: ${MONITOR_EMAIL_TO:}
+    dashboard-url: ${MONITOR_EMAIL_DASHBOARD_URL:http://127.0.0.1:15273/#alerts}
+    max-attempts: ${MONITOR_EMAIL_MAX_ATTEMPTS:5}
+    initial-retry-delay-seconds: ${MONITOR_EMAIL_RETRY_DELAY_SECONDS:30}
+    poll-interval-ms: ${MONITOR_EMAIL_POLL_INTERVAL_MS:5000}
+    smtp:
+      host: ${SMTP_HOST:smtp.gmail.com}
+      port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      auth: ${SMTP_AUTH:true}
+      starttls-enabled: ${SMTP_STARTTLS_ENABLED:true}
+      ssl-enabled: ${SMTP_SSL_ENABLED:false}
+  alerts:
+    enabled: ${MONITOR_ALERTS_ENABLED:true}
+    minimum-requests: ${MONITOR_ALERT_MINIMUM_REQUESTS:10}
+    error-rate-percent: ${MONITOR_ALERT_ERROR_RATE_PERCENT:10}
+    average-duration-ms: ${MONITOR_ALERT_AVERAGE_DURATION_MS:500}
+    cooldown-seconds: ${MONITOR_ALERT_COOLDOWN_SECONDS:600}
+  ingest:
+    api-key: ${MONITOR_INGEST_API_KEY}
+  kafka:
+    request-topic: monitor.http-requests.v1
+    dead-letter-topic: monitor.http-requests.v1.DLT
+
+logging:
+  level:
+    org.apache.kafka.clients.admin.AdminClientConfig: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: WARN
+    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
+
